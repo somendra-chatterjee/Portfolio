@@ -1,0 +1,2 @@
+Upload this folder's contents to your Portfolio repository root.
+The previous custom viewer is no longer linked or needed. If these old files remain in your repository, you may remove them: resume.html, viewer.js, viewer.css, assets/resume-data.js, assets/pdfjs/, assets/Somendra-Chatterjee.vcf, tools/update-resume.py. Keep assets/Somendra-Chatterjee-Resume.pdf and assets/portrait.jpg.

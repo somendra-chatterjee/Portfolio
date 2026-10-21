@@ -10,9 +10,10 @@
   theme.addEventListener('click', () => {
     const dark = root.dataset.theme !== 'dark';
     root.dataset.theme = dark ? 'dark' : 'light';
-    theme.textContent = dark ? 'Light mode' : 'Dark mode';
-    theme.setAttribute('aria-pressed', String(dark));
-    theme.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+    theme.dataset.mode = dark ? 'dark' : 'light';
+    theme.setAttribute('aria-checked', String(dark));
+    theme.querySelector('.theme-label').textContent = dark ? 'Dark' : 'Light';
+    theme.setAttribute('title', dark ? 'Switch to light mode' : 'Switch to dark mode');
     document.querySelector('meta[name="color-scheme"]').content = dark ? 'dark' : 'light';
   });
   let toastTimer;
@@ -37,12 +38,23 @@
     if (resumeDialog.open) resumeDialog.close();
     toast('PDF download requested. Check your browser’s downloads.');
   }));
-  resumeDialog.querySelector('a[target="_blank"]').addEventListener('click', () => resumeDialog.close());
+  resumeDialog.querySelector('#view-resume').addEventListener('click', () => resumeDialog.close());
   async function copy(text, message = 'Copied to clipboard.') {
     try {
       if (!navigator.clipboard || !window.isSecureContext) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(text); toast(message);
     } catch (_) {
+      // Local-file browsers may block the asynchronous clipboard API.
+      const priorFocus = document.activeElement;
+      const holder = document.querySelector('dialog[open]') || document.body;
+      const temp = document.createElement('textarea'); temp.value = text;
+      temp.setAttribute('aria-label', 'Copy contact value');
+      temp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';
+      holder.append(temp); temp.focus(); temp.select();
+      let copied = false;
+      try { copied = document.execCommand('copy'); } catch (_) {}
+      temp.remove(); priorFocus?.focus();
+      if (copied) { toast(message); return; }
       const area = $('#copy-fallback'); area.value = text;
       const dialog = $('#copy-dialog');
       if (typeof dialog.showModal === 'function') { dialog.showModal(); area.focus(); area.select(); }
@@ -66,8 +78,8 @@
     $('#view-status').textContent = message;
   }
   function view(mode) {
-    disclosures.forEach(d => { d.open = mode === 'full' || d.dataset.defaultOpen === 'true'; });
-    updateViewStatus(mode, mode === 'full' ? 'Full details: all sections expanded.' : 'Quick overview: current role expanded. Open other sections as needed.');
+    disclosures.forEach(d => { d.open = mode === 'full'; });
+    updateViewStatus(mode, mode === 'full' ? 'Full details: all sections expanded.' : 'Quick overview: details collapsed. Open any role or project to explore.');
     requestAnimationFrame(updateScroll);
   }
   $$('[data-view]').forEach(b => b.addEventListener('click', () => view(b.dataset.view)));
@@ -86,7 +98,7 @@
     if (!target) return;
     let parent = target.closest('details');
     while (parent) { parent.open = true; parent = parent.parentElement.closest('details'); }
-    if (target.classList.contains('year-entry')) target.querySelector('details').open = true;
+    if (target.classList.contains('year-entry') || target.classList.contains('project')) target.querySelector('details').open = true;
     requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
   }
   window.addEventListener('hashchange', revealHash);
